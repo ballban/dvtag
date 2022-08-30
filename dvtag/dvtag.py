@@ -6,6 +6,7 @@ from typing import List, Optional
 from mutagen.flac import FLAC
 from mutagen.id3 import (APIC, ID3, TALB, TDRC, TPE1, TPE2, TPOS, TRCK, TIT2, TCON, TXXX,
                          ID3NoHeaderError)
+from mutagen.mp4 import MP4, MP4Cover, AtomDataType
 from natsort import os_sorted
 from PIL.Image import Image
 
@@ -85,6 +86,33 @@ def tag_flacs(files: List[Path], dv: DoujinVoice, image: Image,
                 f"Tagged <track: {trck}, disc: {disc}, name: {track_title}> to '{file.name}'")
 
 
+def tag_mp4(files: List[Path], dv: DoujinVoice, png_bytes_arr: BytesIO, disc: Optional[int]):
+
+    for trck, file in enumerate(os_sorted(files), start=1):
+        tags = MP4(file)
+        tags.clear()
+
+        covr = MP4Cover(png_bytes_arr.getvalue(), AtomDataType.PNG)
+        tags['covr'] = [covr]
+        tags["\xa9alb"] = [dv.work_name]
+        tags["trkn"] = [(trck, 0)]
+        tags["\xa9ART"] = ['; '.join(dv.seiyus) + ';']
+        tags["aART"] = [dv.circle]
+        tags["\xa9day"] = [dv.sale_date]
+        tags["\xa9gen"] = ['; '.join(dv.genres) + ';']
+        tags["----:com.apple.iTunes:dvtag_rjid"] = bytes(dv.rjid, 'UTF-8')
+        tags["----:com.apple.iTunes:dvtag_age_restriction"] = bytes(dv.age_restriction, 'UTF-8')
+        tags["----:com.apple.iTunes:dvtag_dl_count"] = bytes(str(dv.dl_count), 'UTF-8')
+        tags["----:com.apple.iTunes:dvtag_illustrators"] = bytes(', '.join(dv.illustrators), 'UTF-8')
+
+        if disc:
+            tags["disk"] = [(disc, 0)]
+
+        if tags != MP4(file):
+            tags.save(file)
+            logging.info(f"Tagged <track: {trck}, disc: {disc}> to '{file.name}'")
+
+
 def tag(basepath: Path):
     rjid = get_rjid(basepath.name)
     dv = DoujinVoice(rjid)
@@ -101,7 +129,7 @@ def tag(basepath: Path):
     image = get_image(dv.work_image)
     png_bytes_arr = get_png_byte_arr(image)
 
-    flac_paths_list, mp3_paths_list = get_audio_paths_list(basepath)
+    flac_paths_list, mp3_paths_list, mp4_paths_list = get_audio_paths_list(basepath)
 
     set_disc = False
     disc = None
@@ -116,6 +144,11 @@ def tag(basepath: Path):
 
     for mp3_files in mp3_paths_list:
         tag_mp3s(mp3_files, dv, png_bytes_arr, disc)
+        if set_disc:
+            disc += 1
+
+    for mp4_files in mp4_paths_list:
+        tag_mp4(mp4_files, dv, png_bytes_arr, disc)
         if set_disc:
             disc += 1
 

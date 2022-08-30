@@ -89,22 +89,28 @@ def get_audio_paths_list(
     """
     flac_paths_list = []
     mp3_paths_list = []
+    mp4_paths_list = []
 
     for files in _walk(basepath):
         mp3_paths = []
         flac_paths = []
+        mp4_paths = []
         for file in files:
             if file.name.endswith(".flac"):
                 flac_paths.append(file)
             elif file.name.endswith(".mp3"):
                 mp3_paths.append(file)
+            elif file.name.endswith(".m4a"):
+                mp4_paths.append(file)
 
         if len(flac_paths):
             flac_paths_list.extend(_split(flac_paths))
         if len(mp3_paths):
             mp3_paths_list.extend(_split(mp3_paths))
+        if len(mp4_paths):
+            mp4_paths_list.extend(_split(mp4_paths))
 
-    return flac_paths_list, mp3_paths_list
+    return flac_paths_list, mp3_paths_list, mp4_paths_list
 
 
 def get_rjid(name: str) -> Optional[str]:
