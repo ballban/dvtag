@@ -25,7 +25,7 @@ class DoujinVoice:
 
         self._init_metadata()
         self._add_metadata()
-        self._get_cover()
+        #self._get_cover()
 
     def _add_metadata(self):
         html = session.get(self.url).text

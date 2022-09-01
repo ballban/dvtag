@@ -153,3 +153,19 @@ def tag(basepath: Path):
             disc += 1
 
     logging.info(f"[{rjid}] Done.")
+
+    if check_cover(basepath, image) is False:
+        logging.info(f"[{rjid}] Cover created.")
+
+
+def check_cover(basepath: Path, image: Image):
+    # Check cover exists
+    path = Path(basepath / 'cover.jpg')
+    if path.is_file():
+        return True
+    path = Path(basepath / 'cover.png')
+    if path.is_file():
+        return True
+
+    image.save(basepath / 'cover.jpg')
+    return False
