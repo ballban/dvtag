@@ -96,7 +96,7 @@ def tag_mp4(files: List[Path], dv: DoujinVoice, png_bytes_arr: BytesIO, disc: Op
         tags['covr'] = [covr]
         tags["\xa9alb"] = [dv.work_name]
         tags["trkn"] = [(trck, 0)]
-        tags["\xa9ART"] = ['; '.join(dv.seiyus) + ';']
+        tags["\xa9ART"] = ['; '.join(dv.seiyus)]
         tags["aART"] = [dv.circle]
         tags["\xa9day"] = [dv.sale_date]
         tags["\xa9gen"] = ['; '.join(dv.genres) + ';']
