@@ -1,4 +1,6 @@
 import logging
+import os
+import re
 from io import BytesIO
 from pathlib import Path
 from typing import List, Optional
@@ -17,7 +19,7 @@ from .doujinvoice import DoujinVoice
 
 
 def tag_mp3s(mp3_paths: List[Path], dv: DoujinVoice, png_bytes_arr: BytesIO,
-             disc_number: Optional[int]):
+             disc_number: Optional[int], base_path: Path):
     tags = ID3()
 
     tags.add(TALB(text=[dv.work_name]))
@@ -55,9 +57,13 @@ def tag_mp3s(mp3_paths: List[Path], dv: DoujinVoice, png_bytes_arr: BytesIO,
         tags.delall("TIT2")
         tags.delall("TRCK")
 
+        if disc_number:
+            move_file(p, base_path, disc_number)
+
+
 
 def tag_flacs(files: List[Path], dv: DoujinVoice, image: Image,
-              png_bytes_arr: BytesIO, disc: Optional[int]):
+              png_bytes_arr: BytesIO, disc: Optional[int], base_path: Path):
     picture = get_picture(png_bytes_arr, image.width, image.height, image.mode)
 
     for trck, file in enumerate(os_sorted(files), start=1):
@@ -85,8 +91,12 @@ def tag_flacs(files: List[Path], dv: DoujinVoice, image: Image,
             logging.info(
                 f"Tagged <track: {trck}, disc: {disc}, name: {track_title}> to '{file.name}'")
 
+        if disc:
+            move_file(file, base_path, disc)
 
-def tag_mp4(files: List[Path], dv: DoujinVoice, png_bytes_arr: BytesIO, disc: Optional[int]):
+
+def tag_mp4(files: List[Path], dv: DoujinVoice, png_bytes_arr: BytesIO,
+            disc: Optional[int], base_path: Path):
 
     for trck, file in enumerate(os_sorted(files), start=1):
         tags = MP4(file)
@@ -112,9 +122,12 @@ def tag_mp4(files: List[Path], dv: DoujinVoice, png_bytes_arr: BytesIO, disc: Op
             tags.save(file)
             logging.info(f"Tagged <track: {trck}, disc: {disc}> to '{file.name}'")
 
+        if disc:
+            move_file(file, base_path, disc)
 
-def tag(basepath: Path):
-    rjid = get_rjid(basepath.name)
+
+def tag(base_path: Path):
+    rjid = get_rjid(base_path.name)
     dv = DoujinVoice(rjid)
     logging.info(f"[{rjid}] Ready to tag...")
     logging.info(f"Circle:   {dv.circle}")
@@ -129,43 +142,71 @@ def tag(basepath: Path):
     image = get_image(dv.work_image)
     png_bytes_arr = get_png_byte_arr(image)
 
-    flac_paths_list, mp3_paths_list, mp4_paths_list = get_audio_paths_list(basepath)
+    flac_paths_list, mp3_paths_list, mp4_paths_list = get_audio_paths_list(base_path)
 
     set_disc = False
     disc = None
-    if len(flac_paths_list) + len(mp3_paths_list) > 1:
+    if len(flac_paths_list) + len(mp3_paths_list) + len(mp4_paths_list) > 1:
         set_disc = True
         disc = 1
 
     for flac_files in flac_paths_list:
-        tag_flacs(flac_files, dv, image, png_bytes_arr, disc)
+        tag_flacs(flac_files, dv, image, png_bytes_arr, disc, base_path)
         if set_disc:
             disc += 1
 
     for mp3_files in mp3_paths_list:
-        tag_mp3s(mp3_files, dv, png_bytes_arr, disc)
+        tag_mp3s(mp3_files, dv, png_bytes_arr, disc, base_path)
         if set_disc:
             disc += 1
 
     for mp4_files in mp4_paths_list:
-        tag_mp4(mp4_files, dv, png_bytes_arr, disc)
+        tag_mp4(mp4_files, dv, png_bytes_arr, disc, base_path)
         if set_disc:
             disc += 1
 
     logging.info(f"[{rjid}] Done.")
 
-    if check_cover(basepath, image) is False:
+    if check_cover(base_path, image) is False:
         logging.info(f"[{rjid}] Cover created.")
 
+    remove_empty_folder(base_path)
 
-def check_cover(basepath: Path, image: Image):
+    change_folder_name(base_path)
+
+
+def check_cover(base_path: Path, image: Image):
     # Check cover exists
-    path = Path(basepath / 'cover.jpg')
+    path = Path(base_path / 'cover.jpg')
     if path.is_file():
         return True
-    path = Path(basepath / 'cover.png')
+    path = Path(base_path / 'cover.png')
     if path.is_file():
         return True
 
-    image.save(basepath / 'cover.jpg')
+    image.save(base_path / 'cover.jpg')
     return False
+
+
+def move_file(file: Path, base_path: Path, disc: int):
+    # Change the file name and move file to base dir
+    if disc:
+        new_path = base_path / f'{disc}-{file.name}'
+        os.rename(file, new_path)
+        logging.info(f'Move file {file} \r\nto {new_path}')
+
+
+def remove_empty_folder(base_path: Path):
+    folders = list(os.walk(base_path))[1:]
+    for folder in folders:
+        if not folder[2]:
+            os.rmdir(folder[0])
+
+
+def change_folder_name(base_path: Path):
+    pattern = '(\[RJ.*\])(\[.+\])'
+    match = re.match(pattern, base_path.name)
+    new_name = base_path.name.replace(match[0], match[2] + match[1]);
+    new_path = base_path.parent / new_name
+    os.rename(base_path, new_path)
+    logging.info(f'Folder renamed: {new_path}')
