@@ -199,14 +199,15 @@ def move_file(file: Path, base_path: Path, disc: int):
 def remove_empty_folder(base_path: Path):
     folders = list(os.walk(base_path))[1:]
     for folder in folders:
-        if not folder[2]:
+        if not folder[2] and not folder[1]:
             os.rmdir(folder[0])
 
 
 def change_folder_name(base_path: Path):
     pattern = '(\[RJ.*\])(\[.+\])'
     match = re.match(pattern, base_path.name)
-    new_name = base_path.name.replace(match[0], match[2] + match[1]);
-    new_path = base_path.parent / new_name
-    os.rename(base_path, new_path)
-    logging.info(f'Folder renamed: {new_path}')
+    if match:
+        new_name = base_path.name.replace(match[0], match[2] + match[1]);
+        new_path = base_path.parent / new_name
+        os.rename(base_path, new_path)
+        logging.info(f'Folder renamed: {new_path}')
