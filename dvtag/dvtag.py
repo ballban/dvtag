@@ -172,7 +172,7 @@ def tag(base_path: Path):
 
     remove_empty_folder(base_path)
 
-    change_folder_name(base_path)
+    change_folder_name(base_path, dv)
 
 
 def check_cover(base_path: Path, image: Image):
@@ -203,11 +203,14 @@ def remove_empty_folder(base_path: Path):
             os.rmdir(folder[0])
 
 
-def change_folder_name(base_path: Path):
-    pattern = '(\[RJ.*\])(\[.+\])'
-    match = re.match(pattern, base_path.name)
-    if match:
-        new_name = base_path.name.replace(match[0], match[2] + match[1]);
-        new_path = base_path.parent / new_name
-        os.rename(base_path, new_path)
-        logging.info(f'Folder renamed: {new_path}')
+def change_folder_name(base_path: Path, dv):
+    # pattern = '(\[RJ.*\])(\[.+\])'
+    # match = re.match(pattern, base_path.name)
+    # if match:
+    #     new_name = base_path.name.replace(match[0], match[2] + match[1]);
+    #     new_path = base_path.parent / new_name
+    # else:
+    new_path = base_path.parent / f"[{dv.circle}][{dv.rjid}] {dv.work_name}"
+
+    os.rename(base_path, new_path)
+    logging.info(f'Folder renamed: {new_path}')
