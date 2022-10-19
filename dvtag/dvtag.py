@@ -211,8 +211,8 @@ def change_folder_name(base_path: Path, dv):
     #     new_path = base_path.parent / new_name
     # else:
     pattern = '\\\|\/|\?|\:|\*|\"|\>|\<|\|'
-    new_name = re.sub(pattern, '', dv.work_name)
-    new_circle = re.sub(pattern, '', dv.circle)
+    new_name = re.sub(pattern, '', dv.work_name).strip()
+    new_circle = re.sub(pattern, '', dv.circle).strip()
     new_path = base_path.parent / f"[{new_circle}][{dv.rjid}] {new_name}"
 
     os.rename(base_path, new_path)
