@@ -11,7 +11,7 @@ from natsort import os_sort_key
 from PIL import Image
 from requests.adapters import HTTPAdapter
 
-rjid_pat = re.compile(r"RJ[0-9]{6}", flags=re.IGNORECASE)
+rjid_pat = re.compile(r"RJ[0-9]{6,8}", flags=re.IGNORECASE)
 
 
 def _split(audio_files: List[Path]) -> List[List[Path]]:
